@@ -1,0 +1,42 @@
+---
+title: "01_data"
+author: "Sglatt"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r git, eval=FALSE}
+usethis::create_from_github("https://github.com/Sfglatt/Restriction-measure.git",
+                            destdir = "Github/Restriction-measure")
+```
+
+```{r packages}
+if (!require("dplyr")) {install.packages("dplyr"); require("dplyr")} 
+if (!require("haven")) {install.packages("haven"); require("haven")} 
+if (!require("tidyverse")) {install.packages("tidyverse"); require("tidyverse")} 
+```
+
+```{r data}
+# Import data 
+
+# CSVs
+CS_dat <- read.csv("Raw_data/ClinicalScreener Baseline.csv")
+Pioneer_dat <- read.csv("Raw_data/Pioneer Baseline.csv")
+R15_dat <- read.csv("Raw_data/R15 baseline.csv")
+
+# SAVs
+ORP_dat <- read_sav("Raw_data/ORP_FULL_CLEAN.sav")
+PT_dat <- read_sav("Raw_data/PTvCBT_FULL_CLEAN.sav")
+
+# CS: rm_1 through rm_72 
+# R15: rm_1 through rm_72
+# Pioneer: t1rm_1 --> tqrm_72
+# ORP: f4_rm_1 through f4_rm_72 OR f3, or just rm...
+# PT: rm_1 though rm_72 or t1.3 etc
+```
+
+
