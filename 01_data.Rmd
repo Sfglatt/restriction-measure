@@ -17,6 +17,7 @@ usethis::create_from_github("https://github.com/Sfglatt/Restriction-measure.git"
 ```{r packages}
 if (!require("dplyr")) {install.packages("dplyr"); require("dplyr")} 
 if (!require("haven")) {install.packages("haven"); require("haven")} 
+if (!require("psych")) {install.packages("psych"); require("psych")} 
 if (!require("tidyverse")) {install.packages("tidyverse"); require("tidyverse")} 
 ```
 
@@ -32,11 +33,50 @@ R15_dat <- read.csv("Raw_data/R15 baseline.csv")
 ORP_dat <- read_sav("Raw_data/ORP_FULL_CLEAN.sav")
 PT_dat <- read_sav("Raw_data/PTvCBT_FULL_CLEAN.sav")
 
-# CS: rm_1 through rm_72 
-# R15: rm_1 through rm_72
-# Pioneer: t1rm_1 --> tqrm_72
-# ORP: f4_rm_1 through f4_rm_72 OR f3, or just rm...
-# PT: rm_1 though rm_72 or t1.3 etc
+# Select columns rm_1 through rm_72 and add a dataset identifier for each dataset; no loop to make sure of the right version/time items
+CS_selected <- CS_dat %>%
+  select(matches("^rm_([1-9]|[1-6][0-9]|7[0-2])$")) %>%
+  mutate(dataset_id = "CS_dat")
+
+colnames(CS_selected)
+
+Pioneer_selected <- Pioneer_dat %>%
+  select(matches("^t1rm_([1-9]|[1-6][0-9]|7[0-2])$")) %>%
+  mutate(dataset_id = "Pioneer_dat")
+
+colnames(Pioneer_selected) <- gsub("t1", "", colnames(Pioneer_selected))
+colnames(Pioneer_selected)
+
+R15_selected <- R15_dat %>%
+  select(matches("^rm_([1-9]|[1-6][0-9]|7[0-2])$")) %>%
+  mutate(dataset_id = "R15_dat")
+
+colnames(R15_selected)
+
+ORP_selected <- ORP_dat %>%
+  select(matches("^rm_([1-9]|[1-6][0-9]|7[0-2])$")) %>%
+  mutate(dataset_id = "ORP_dat")
+
+colnames(ORP_selected)
+
+PT_selected <- PT_dat %>%
+  select(matches("^rm_([1-9]|[1-6][0-9]|7[0-2])$")) %>%
+  mutate(dataset_id = "PT_dat")
+
+colnames(PT_selected)
+
+# Combine all datasets into one
+merged_rm <- bind_rows(CS_selected, Pioneer_selected, R15_selected, ORP_selected, PT_selected)
+View(merged_rm)
+
+# mean, SD, ranges for all items
+describe(merged_rm %>% select(starts_with("rm_")))
+
+# remove rows with *all* NAs
+merged_rm_cleaned <- merged_rm %>%
+  filter(!rowSums(across(starts_with("rm_"), ~ is.na(.))) == ncol(select(., starts_with("rm_"))))
+
+View(merged_rm_cleaned)
 ```
 
 

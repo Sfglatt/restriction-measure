@@ -1,0 +1,156 @@
+---
+title: "02_analysis"
+author: "Sglatt"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r packages}
+if (!require("EGAnet")) {install.packages("EGAnet"); require("EGAnet")} 
+if (!require("psychTools")) {install.packages("psychTools"); require("psychTools")} 
+```
+
+```{r data}
+# created in 01_data; "merged_rm_cleaned"
+# remove dataset identifier
+merged_rm_ega_vars <- merged_rm_cleaned %>%
+  select(-dataset_id)
+```
+
+# EGA (*without item removal per unique variable analysis)
+```{r ega}
+# EGA
+rm_ega <- EGA(data = merged_rm_ega_vars,
+              corr = "auto", 
+              model = "glasso", 
+              algorithm = "walktrap",
+              uni.method = "louvain",
+              plot.EGA = TRUE,
+              verbose = TRUE)
+
+summary(rm_ega)
+plot(rm_ega, layout = "circle")
+
+# network loadings
+net.loads(rm_ega)
+# "Network loadings of .15, .25, and .35 are equivalent to low (.40), moderate (.55), and high (.70) network loadings, respectively (Christensen & Golino, 2021c)"
+
+# boostrap for stability
+rm_boot <- bootEGA(
+  data = merged_rm_ega_vars,
+  corr = "auto", 
+  model = "glasso", 
+  algorithm = "walktrap",
+  uni.method = "louvain",
+  iter = 1000,
+  seed = 123456 
+)
+
+# compare median structure between empirical and boot
+rm_compare <- compare.EGA.plots(
+  rm_ega, rm_boot,
+  labels = c("Empirical", "Bootstrap")
+)
+
+# summary stats about bootstrapped version
+summary(rm_boot)
+
+# item stability
+rm_boot_dim <- dimensionStability(rm_boot)
+# "Item stability indicates how often an item replicates in their designated EGA dimension, with values lower than .75 (i.e., that are estimated in their original dimensions in 75% of the bootstrapped samples)"
+
+# where are the items going in the times that it isn't going in its dimension
+rm_boot_dim$item.stability$item.stability$all.dimension
+
+# To improve fit/stability it's suggested to remove items with stability <75% and/or with network loadings lower than .15.
+
+pdf("02_output/rm_ega_plot.pdf", width = 10, height = 10)
+plot(rm_ega) 
+dev.off() 
+
+pdf("02_output/rm_ega_plot_circle.pdf", width = 13, height = 10)
+plot(rm_ega, layout = "circle") 
+dev.off()
+
+pdf("02_output/rm_ega_comparison_plot.pdf", width = 10, height = 10)
+rm_compare <- compare.EGA.plots(rm_ega, rm_boot,
+  labels = c("Empirical", "Bootstrap"))
+dev.off()
+
+pdf("02_output/rm_ega_stability.pdf", width = 10, height = 10)
+dimensionStability(rm_boot)
+dev.off()
+```
+
+# EGA (*with item removal per UVA)
+```{r ega uva}
+# unique variable analysis to see redunancies
+rm_uva <- UVA(data = merged_rm_ega_vars)
+rm_uva
+
+rm_uva$keep_remove
+
+# EGA
+rm_uva_ega <- EGA(data = rm_uva$reduced_data, 
+                  corr = "auto", 
+                  model = "glasso", 
+                  algorithm = "walktrap",
+                  uni.method = "louvain",
+                  plot.EGA = TRUE,
+                  verbose = TRUE)
+
+summary(rm_uva_ega)
+plot(rm_uva_ega, layout = "circle")
+
+# network loadings
+net.loads(rm_uva_ega)
+
+# boostrap for stability
+rm_uva_boot <- bootEGA(
+  data = rm_uva$reduced_data,
+  corr = "auto", 
+  model = "glasso", 
+  algorithm = "walktrap",
+  uni.method = "louvain",
+  iter = 1000,
+  seed = 123456 
+)
+
+# compare median structure between empirical and boot
+rm_uva_compare <- compare.EGA.plots(
+  rm_uva_ega, rm_uva_boot,
+  labels = c("Empirical", "Bootstrap")
+)
+
+# summary stas about bootstrapped version
+summary(rm_uva_boot)
+
+# item stability
+rm_uva_boot_dim <- dimensionStability(rm_uva_boot)
+
+# where are the items going in the times that it isn't going in its dimension
+rm_uva_boot_dim$item.stability$item.stability$all.dimensions
+
+# save figures
+pdf("02_output/rm_uva_ega_plot.pdf", width = 10, height = 10)
+plot(rm_uva_ega) 
+dev.off() 
+
+pdf("02_output/rm_uva_ega_plot_circle.pdf", width = 13, height = 10)
+plot(rm_uva_ega, layout = "circle") 
+dev.off()
+
+pdf("02_output/rm_uva_ega_comparison_plot.pdf", width = 10, height = 10)
+rm_uva_compare <- compare.EGA.plots(rm_uva_ega, rm_uva_boot,
+  labels = c("Empirical", "Bootstrap"))
+dev.off()
+
+pdf("02_output/rm_uva_ega_stability.pdf", width = 10, height = 10)
+dimensionStability(rm_uva_boot)
+dev.off()
+```
+
