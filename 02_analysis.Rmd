@@ -85,7 +85,75 @@ pdf("02_output/rm_ega_stability.pdf", width = 10, height = 10)
 dimensionStability(rm_boot)
 dev.off()
 ```
+# remove lowest item from dimension 5 (#27) and 5 lowest from dimension 2 (34, 33, 66, 67, 72) and rereun
+```{r EGA w item removals}
+merged_rm_27_ega_vars <- merged_rm_ega_vars %>%
+  select(-rm_27, -rm_33, -rm_34, -rm_66, -rm_67, -rm_72)
 
+# EGA
+rm_27_ega <- EGA(data = merged_rm_27_ega_vars,
+              corr = "auto", 
+              model = "glasso", 
+              algorithm = "walktrap",
+              uni.method = "louvain",
+              plot.EGA = TRUE,
+              verbose = TRUE)
+
+summary(rm_27_ega)
+plot(rm_27_ega, layout = "circle")
+
+# network loadings
+net.loads(rm_27_ega)
+# "Network loadings of .15, .25, and .35 are equivalent to low (.40), moderate (.55), and high (.70) network loadings, respectively (Christensen & Golino, 2021c)"
+
+# boostrap for stability
+rm_27_boot <- bootEGA(
+  data = merged_rm_27_ega_vars,
+  corr = "auto", 
+  model = "glasso", 
+  algorithm = "walktrap",
+  uni.method = "louvain",
+  iter = 1000,
+  seed = 123456 
+)
+
+# compare median structure between empirical and boot
+rm_27_compare <- compare.EGA.plots(
+  rm_27_ega, rm_27_boot,
+  labels = c("Empirical", "Bootstrap")
+)
+
+# summary stats about bootstrapped version
+summary(rm_27_boot)
+
+# item stability
+rm_27_boot_dim <- dimensionStability(rm_27_boot)
+# "Item stability indicates how often an item replicates in their designated EGA dimension, with values lower than .75 (i.e., that are estimated in their original dimensions in 75% of the bootstrapped samples)"
+
+# where are the items going in the times that it isn't going in its dimension
+rm_27_boot_dim$item.stability$item.stability$all.dimension
+
+# To improve fit/stability it's suggested to remove items with stability <75% and/or with network loadings lower than .15.
+
+pdf("02_output/rm_27_ega_plot.pdf", width = 10, height = 10)
+plot(rm_27_ega) 
+dev.off() 
+
+pdf("02_output/rm_27_ega_plot_circle.pdf", width = 13, height = 10)
+plot(rm_27_ega, layout = "circle") 
+dev.off()
+
+pdf("02_output/rm_27_ega_comparison_plot.pdf", width = 10, height = 10)
+rm_27_compare <- compare.EGA.plots(rm_27_ega, rm_27_boot,
+  labels = c("Empirical", "Bootstrap"))
+dev.off()
+
+pdf("02_output/rm_27_ega_stability.pdf", width = 10, height = 10)
+dimensionStability(rm_27_boot)
+dev.off()
+```
+
+)
 # EGA (*with item removal per UVA)
 ```{r ega uva}
 # unique variable analysis to see redunancies

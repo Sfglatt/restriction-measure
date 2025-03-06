@@ -28,6 +28,7 @@ if (!require("tidyverse")) {install.packages("tidyverse"); require("tidyverse")}
 CS_dat <- read.csv("Raw_data/ClinicalScreener Baseline.csv")
 Pioneer_dat <- read.csv("Raw_data/Pioneer Baseline.csv")
 R15_dat <- read.csv("Raw_data/R15 baseline.csv")
+UG_dat <- read.csv("Raw_data/IMPUTED_Undergrad Screener_FRM data.csv")
 
 # SAVs
 ORP_dat <- read_sav("Raw_data/ORP_FULL_CLEAN.sav")
@@ -65,8 +66,14 @@ PT_selected <- PT_dat %>%
 
 colnames(PT_selected)
 
+UG_selected <- UG_dat %>%
+  select(matches("^rm_([1-9]|[1-6][0-9]|7[0-2])$")) %>%
+  mutate(dataset_id = "UG_dat")
+
+colnames(UG_selected)
+
 # Combine all datasets into one
-merged_rm <- bind_rows(CS_selected, Pioneer_selected, R15_selected, ORP_selected, PT_selected)
+merged_rm <- bind_rows(CS_selected, Pioneer_selected, R15_selected, ORP_selected, PT_selected, UG_selected)
 View(merged_rm)
 
 # mean, SD, ranges for all items
@@ -77,6 +84,14 @@ merged_rm_cleaned <- merged_rm %>%
   filter(!rowSums(across(starts_with("rm_"), ~ is.na(.))) == ncol(select(., starts_with("rm_"))))
 
 View(merged_rm_cleaned)
+
+# save datasets
+write.csv(merged_rm_cleaned, file = paste0("01_output/RM_items_clean_UG_R15_PTvCBT_ORP_PIONEER_", 
+                                           format(Sys.Date(), "%Y_%m_%d"), ".csv"),  row.names = TRUE) # rows with all NA removed
+
+# save datasets
+write.csv(merged_rm, file = paste0("01_output/RM_items_UG_R15_PTvCBT_ORP_PIONEER_", 
+                                   format(Sys.Date(), "%Y_%m_%d"), ".csv"),  row.names = TRUE) # rows with all NA not removed
 ```
 
 
