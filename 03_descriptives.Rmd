@@ -1,0 +1,147 @@
+---
+title: "03_descriptives"
+author: "Sglatt"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r packages}
+if (!require("dplyr")) {
+  install.packages("dplyr")
+  require("dplyr")
+}
+if (!require("janitor")) {
+  install.packages("janitor")
+  require("janitor")
+}
+if (!require("gtsummary")) {
+  install.packages("gtsummary")
+  require("gtsummary")
+}
+
+# Folder for output
+if (!dir.exists("03_output")) {
+  dir.create("03_output")
+}
+```
+
+# Data
+Created in 01_data
+```{r data}
+merged_rm_cleaned_items_x_UG <- read.csv("01_output/RM_items_R15_PTvCBT_ORP_PIONEER_2026_05_17.csv")
+
+# Isolate demo variables + add a column to identify the single merged  sample (everyone)
+demo_data <- merged_rm_cleaned_items_x_UG %>%
+  bind_rows(
+    merged_rm_cleaned_items_x_UG %>%
+      mutate(dataset_id = "Combined")
+  )
+
+```
+
+# Basic demographics for the combined sample and each sample separately
+```{r demos}
+# clinical_demo_1	  What sex were you assigned at birth?
+# clinical_demo_2		Which gender do you most identify as?
+# clinical_demo_3	 	What is your sexual orientation?
+# clinical_demo_4		What is your marital status?
+# clinical_demo_8   Your age:
+# clinical_demo_21  Ethnicity 
+
+# Make labeled/factor versions of the demographic variables for table
+# These labels are based on ORP and R15 SPSS data dictionaries (which concord with one another)
+demo_data <- demo_data %>%
+  mutate(
+    clinical_demo_1 = factor(
+      clinical_demo_1,
+      levels = c(1, 2, 3),
+      labels = c("Male", "Female", "Intersex")
+    ),
+
+    clinical_demo_2 = factor(
+      clinical_demo_2,
+      levels = c(1, 2, 3, 4, 5, 6),
+      labels = c(
+        "Female",
+        "Male",
+        "Transgender Female",
+        "Transgender Male",
+        "Gender Variant/Non-Conforming",
+        "Not listed"
+      )
+    ),
+
+    clinical_demo_3 = factor(
+      clinical_demo_3,
+      levels = c(1, 2, 3, 4, 5, 6),
+      labels = c(
+        "Lesbian or gay",
+        "Straight (Not lesbian or gay)",
+        "Bisexual",
+        "Something else",
+        "Dont know",
+        "Prefer not to disclose"
+      )
+    ),
+
+    clinical_demo_4 = factor(
+      clinical_demo_4,
+      levels = c(1, 2, 3, 4, 5),
+      labels = c(
+        "Single, never married",
+        "Married, or remarried",
+        "Divorced",
+        "Separated",
+        "Widowed"
+      )
+    ),
+
+    clinical_demo_21 = factor(
+      clinical_demo_21,
+      levels = c(0, 1, 2, 3, 4, 5, 6),
+      labels = c(
+        "American Indian or Alaskan Native",
+        "Asian or Pacific Islander",
+        "Black, not of Hispanic origin",
+        "Hispanic",
+        "Multiracial/Biracial",
+        "White, not of Hispanic origin",
+        "Not listed"
+      )
+    )
+  )
+
+# One demographics table
+demo_table <- demo_data %>%
+  select(
+    dataset_id,
+    clinical_demo_1,
+    clinical_demo_2,
+    clinical_demo_3,
+    clinical_demo_4,
+    clinical_demo_8,
+    clinical_demo_21
+  ) %>%
+  tbl_summary(
+    by = dataset_id,
+    statistic = list(
+      clinical_demo_8 ~ "{mean} ({sd})"
+    ),
+    digits = all_continuous() ~ 2,
+    missing = "ifany"
+  ) %>%
+  bold_labels()
+
+demo_table
+
+# Save
+gtsummary::as_gt(demo_table) %>%
+  gt::gtsave(
+    paste0("03_output/demo_table_", Sys.Date(), ".html")
+  )
+```
+

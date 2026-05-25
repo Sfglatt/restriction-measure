@@ -10,18 +10,40 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r packages}
-if (!require("EGAnet")) {install.packages("EGAnet"); require("EGAnet")} 
-if (!require("psychTools")) {install.packages("psychTools"); require("psychTools")} 
+if (!require("EGAnet")) {
+  install.packages("EGAnet")
+  require("EGAnet")
+}
+if (!require("psychTools")) {
+  install.packages("psychTools")
+  require("psychTools")
+}
+if (!require("dplyr")) {
+  install.packages("dplyr")
+  require("dplyr")
+}
+
+# Folder for output
+if (!dir.exists("02_output")) {
+  dir.create("02_output")
+}
 ```
 
+# Data
+Both created in 01_data, but with different item versions (one with UG screener, one without)
 ```{r data}
-# created in 01_data
+merged_rm_cleaned_items <- read.csv("01_output/RM_items_clean_UG_R15_PTvCBT_ORP_PIONEER_2026_04_19.csv")
+merged_rm_cleaned_items_x_UG <- read.csv("01_output/RM_items_R15_PTvCBT_ORP_PIONEER_2025_03_15.csv")
+
 # remove dataset identifier and clinical demos
 merged_rm_ega_vars <- merged_rm_cleaned_items %>%
-  select(-dataset_id, -starts_with("clinical_demo"))
+  select(-dataset_id, -X, -starts_with("clinical_demo"))
+
+merged_rm_x_UG_ega_vars <- merged_rm_cleaned_items_x_UG %>%
+  select(-dataset_id, -X, -starts_with("clinical_demo"))
 ```
 
-# initial EGA wirg with item removal per UVA
+# initial EGA with with item removal per UVA
 ```{r ega uva}
 # unique variable analysis to see redunancies
 rm_uva <- UVA(data = merged_rm_ega_vars)
@@ -30,13 +52,15 @@ rm_uva
 rm_uva$keep_remove
 
 # EGA
-rm_uva_ega <- EGA(data = rm_uva$reduced_data, 
-                  corr = "auto", 
-                  model = "glasso", 
-                  algorithm = "walktrap",
-                  uni.method = "louvain",
-                  plot.EGA = TRUE,
-                  verbose = TRUE)
+rm_uva_ega <- EGA(
+  data = rm_uva$reduced_data,
+  corr = "auto",
+  model = "glasso",
+  algorithm = "walktrap",
+  uni.method = "louvain",
+  plot.EGA = TRUE,
+  verbose = TRUE
+)
 
 summary(rm_uva_ega)
 plot(rm_uva_ega, layout = "circle")
@@ -47,12 +71,12 @@ net.loads(rm_uva_ega)
 # boostrap for stability
 rm_uva_boot <- bootEGA(
   data = rm_uva$reduced_data,
-  corr = "auto", 
-  model = "glasso", 
+  corr = "auto",
+  model = "glasso",
   algorithm = "walktrap",
   uni.method = "louvain",
   iter = 1000,
-  seed = 123456 
+  seed = 123456
 )
 
 # compare median structure between empirical and boot
@@ -73,19 +97,23 @@ rm_uva_boot_dim <- dimensionStability(rm_uva_boot)
 rm_uva_boot_dim$item.stability$item.stability$all.dimensions
 
 # To improve fit/stability it's suggested to remove items with stability <75% and/or with network loadings lower than .15.
+```
 
+# Save figures
+```{r ega figures, eval=FALSE}
 # save figures
 pdf("02_output/rm_uva_ega_plot.pdf", width = 10, height = 10)
-plot(rm_uva_ega) 
-dev.off() 
+plot(rm_uva_ega)
+dev.off()
 
 pdf("02_output/rm_uva_ega_plot_circle.pdf", width = 13, height = 10)
-plot(rm_uva_ega, layout = "circle") 
+plot(rm_uva_ega, layout = "circle")
 dev.off()
 
 pdf("02_output/rm_uva_ega_comparison_plot.pdf", width = 10, height = 10)
 rm_uva_compare <- compare.EGA.plots(rm_uva_ega, rm_uva_boot,
-  labels = c("Empirical", "Bootstrap"))
+  labels = c("Empirical", "Bootstrap")
+)
 dev.off()
 
 pdf("02_output/rm_uva_ega_stability.pdf", width = 10, height = 10)
@@ -94,20 +122,24 @@ dev.off()
 ```
 
 # remove lowest items after UGA
-```{r EGA w item removals}
+```{r ega w item removals}
 merged_rm_27_ega_vars <- merged_rm_cleaned_items %>%
-  select(-rm_1, -rm_17, -rm_22, -rm_34, -rm_45, -rm_70, # per UVA
-         -rm_20, -rm_21, -rm_23, -rm_33, -rm_49, -rm_27, -rm_9, -rm_11, -rm_37, # poor function
-         -starts_with("clinical_demo"), -dataset_id)
+  select(
+    -rm_1, -rm_17, -rm_22, -rm_34, -rm_45, -rm_70, # per UVA
+    -rm_20, -rm_21, -rm_23, -rm_33, -rm_49, -rm_27, -rm_9, -rm_11, -rm_37, # poor function
+    -starts_with("clinical_demo"), -dataset_id
+  )
 
 # EGA
-rm_27_ega <- EGA(data = merged_rm_27_ega_vars,
-              corr = "auto", 
-              model = "glasso", 
-              algorithm = "walktrap",
-              uni.method = "louvain",
-              plot.EGA = TRUE,
-              verbose = TRUE)
+rm_27_ega <- EGA(
+  data = merged_rm_27_ega_vars,
+  corr = "auto",
+  model = "glasso",
+  algorithm = "walktrap",
+  uni.method = "louvain",
+  plot.EGA = TRUE,
+  verbose = TRUE
+)
 
 summary(rm_27_ega)
 plot(rm_27_ega, layout = "circle")
@@ -118,12 +150,12 @@ net.loads(rm_27_ega)
 # boostrap for stability
 rm_27_boot <- bootEGA(
   data = merged_rm_27_ega_vars,
-  corr = "auto", 
-  model = "glasso", 
+  corr = "auto",
+  model = "glasso",
   algorithm = "walktrap",
   uni.method = "louvain",
   iter = 1000,
-  seed = 123456 
+  seed = 123456
 )
 
 # compare median structure between empirical and boot
@@ -140,18 +172,21 @@ rm_27_boot_dim <- dimensionStability(rm_27_boot)
 
 # where are the items going in the times that it isn't going in its dimension
 rm_27_boot_dim$item.stability$item.stability$all.dimension
+```
 
+```{r ega w item removals figures, eval=FALSE}
 pdf("02_output/rm_items_removed_ega_plot.pdf", width = 10, height = 10)
-plot(rm_27_ega) 
-dev.off() 
+plot(rm_27_ega)
+dev.off()
 
 pdf("02_output/rm_items_removed_ega_plot_circle.pdf", width = 13, height = 10)
-plot(rm_27_ega, layout = "circle") 
+plot(rm_27_ega, layout = "circle")
 dev.off()
 
 pdf("02_output/rm_items_removed_ega_comparison_plot.pdf", width = 10, height = 10)
 rm_27_compare <- compare.EGA.plots(rm_27_ega, rm_27_boot,
-  labels = c("Empirical", "Bootstrap"))
+  labels = c("Empirical", "Bootstrap")
+)
 dev.off()
 
 pdf("02_output/rm_items_removed_ega_stability.pdf", width = 10, height = 10)
@@ -160,12 +195,12 @@ dev.off()
 ```
 
 # removing UG screener, do UVA + EGA
-```{r wo ug}
-merged_rm_cleaned_items_x_UG <- merged_rm_cleaned_items %>%
-  filter(dataset_id != 'UG_dat')
+```{r ega wo ug}
+# merged_rm_cleaned_items_x_UG <- merged_rm_cleaned_items %>%
+#  filter(dataset_id != "UG_dat")
 
-merged_rm_x_UG_ega_vars <- merged_rm_cleaned_items_x_UG %>%
-  select(-dataset_id, -starts_with("clinical_demo"))
+# Rename variables to remove rm_
+colnames(merged_rm_x_UG_ega_vars) <- gsub("^rm_", "", colnames(merged_rm_x_UG_ega_vars))
 
 # unique variable analysis to see redunancies
 rm_x_UG_uva <- UVA(data = merged_rm_x_UG_ega_vars)
@@ -174,13 +209,15 @@ rm_x_UG_uva
 rm_x_UG_uva$keep_remove
 
 # EGA
-rm_x_UG_uva_ega <- EGA(data = rm_x_UG_uva$reduced_data, 
-                  corr = "auto", 
-                  model = "glasso", 
-                  algorithm = "walktrap",
-                  uni.method = "louvain",
-                  plot.EGA = TRUE,
-                  verbose = TRUE)
+rm_x_UG_uva_ega <- EGA(
+  data = rm_x_UG_uva$reduced_data,
+  corr = "auto",
+  model = "glasso",
+  algorithm = "walktrap",
+  uni.method = "louvain",
+  plot.EGA = TRUE,
+  verbose = TRUE
+)
 
 summary(rm_x_UG_uva_ega)
 plot(rm_x_UG_uva_ega, layout = "circle")
@@ -191,12 +228,12 @@ net.loads(rm_x_UG_uva_ega)
 # boostrap for stability
 rm_x_UG_uva_boot <- bootEGA(
   data = rm_x_UG_uva$reduced_data,
-  corr = "auto", 
-  model = "glasso", 
+  corr = "auto",
+  model = "glasso",
   algorithm = "walktrap",
   uni.method = "louvain",
   iter = 1000,
-  seed = 123456 
+  seed = 123456
 )
 
 rm_x_UG_uva_boot
@@ -212,22 +249,26 @@ summary(rm_x_UG_uva_boot)
 
 # item stability
 rm_x_UG_uva_boot_dim <- dimensionStability(rm_x_UG_uva_boot)
-
+rm_x_UG_uva_boot_dim
 # where are the items going in the times that it isn't going in its dimension
 rm_x_UG_uva_boot_dim$item.stability$item.stability$all.dimensions
+```
 
-# save figures
+
+```{r ega wo ug figures, eval=FALSE}
+# save figures 
 pdf("02_output/rm_x_UG_uva_ega_plot.pdf", width = 10, height = 10)
-plot(rm_x_UG_uva_ega) 
-dev.off() 
+plot(rm_x_UG_uva_ega)
+dev.off()
 
 pdf("02_output/rm_x_UG_uva_ega_plot_circle.pdf", width = 13, height = 10)
-plot(rm_x_UG_uva_ega, layout = "circle") 
+plot(rm_x_UG_uva_ega, layout = "circle")
 dev.off()
 
 pdf("02_output/rm_x_UG_uva_ega_comparison_plot.pdf", width = 10, height = 10)
 rm_x_UG_uva_compare <- compare.EGA.plots(rm_x_UG_uva_ega, rm_x_UG_uva_boot,
-  labels = c("Empirical", "Bootstrap"))
+  labels = c("Empirical", "Bootstrap")
+)
 dev.off()
 
 pdf("02_output/rm_x_UG_uva_ega_stability.pdf", width = 10, height = 10)
@@ -236,24 +277,31 @@ dev.off()
 ```
 
 # remove lowest items after UVA [without UG screener]
-```{r removal, wo UG}
+```{r ega w item removal wo UG}
+# colnames(merged_rm_cleaned_items_x_UG) <- gsub("^rm_", "", colnames(merged_rm_cleaned_items_x_UG))
+
 merged_rm_x_UG_27_ega_vars <- merged_rm_cleaned_items_x_UG %>%
-  select(-rm_2, -rm_3, -rm_13, -rm_21, -rm_22, -rm_34, -rm_45, -rm_70, # per UVA
-         
-         -rm_9, -rm_11, -rm_20, -rm_23, -rm_52, -rm_19,
-         -rm_35, -rm_54, -rm_37, -rm_46, -rm_53, -rm_51, -rm_66, -rm_67, -rm_36, -rm_39, -rm_72, 
-         -rm_12, -rm_24, -rm_25, -rm_26, -rm_44, -rm_47, -rm_30, -rm_38, -rm_43, -rm_27, -rm_48, -rm_33, -rm_41, -rm_56,
-         # poor function
-         -starts_with("clinical_demo"), -dataset_id)
+  select(
+    -`2`, -`3`, -`13`, -`21`, -`22`, -`34`, -`45`, -`70`, # per UVA
+
+    -`9`, -`11`, -`20`, -`23`, -`52`, -`19`,
+    -`35`, -`54`, -`37`, -`46`, -`53`, -`51`, -`66`, -`67`, -`36`, -`39`, -`72`,
+    -`12`, -`24`, -`25`, -`26`, -`44`, -`47`, -`30`, -`38`, -`43`, -`27`, -`48`, -`33`, -`41`, -`56`,
+    # poor function
+    
+    -starts_with("clinical_demo"), -dataset_id, -X
+  )
 
 # EGA
-rm_x_UG_27_ega <- EGA(data = merged_rm_x_UG_27_ega_vars,
-              corr = "auto", 
-              model = "glasso", 
-              algorithm = "walktrap",
-              uni.method = "louvain",
-              plot.EGA = TRUE,
-              verbose = TRUE)
+rm_x_UG_27_ega <- EGA(
+  data = merged_rm_x_UG_27_ega_vars,
+  corr = "auto",
+  model = "glasso",
+  algorithm = "walktrap",
+  uni.method = "louvain",
+  plot.EGA = TRUE,
+  verbose = TRUE
+)
 
 summary(rm_x_UG_27_ega)
 plot(rm_x_UG_27_ega, layout = "circle")
@@ -264,12 +312,12 @@ net.loads(rm_x_UG_27_ega)
 # boostrap for stability
 rm_x_UG_27_boot <- bootEGA(
   data = merged_rm_x_UG_27_ega_vars,
-  corr = "auto", 
-  model = "glasso", 
+  corr = "auto",
+  model = "glasso",
   algorithm = "walktrap",
   uni.method = "louvain",
   iter = 1000,
-  seed = 123456 
+  seed = 123456
 )
 
 
@@ -288,18 +336,21 @@ rm_x_UG_27_boot_dim
 
 # where are the items going in the times that it isn't going in its dimension
 rm_x_UG_27_boot_dim$item.stability$item.stability$all.dimension
+```
 
+```{r ega w item removal wo UG figures}
 pdf("02_output/rm_x_UG_items_removed_ega_plot.pdf", width = 10, height = 10)
-plot(rm_x_UG_27_ega) 
-dev.off() 
+plot(rm_x_UG_27_ega)
+dev.off()
 
 pdf("02_output/rm_x_UG_items_removed_ega_plot_circle.pdf", width = 13, height = 10)
-plot(rm_x_UG_27_ega, layout = "circle") 
+plot(rm_x_UG_27_ega, layout = "circle")
 dev.off()
 
 pdf("02_output/rm_x_UG_items_removed_ega_comparison_plot.pdf", width = 10, height = 10)
 rm_x_UG_27_compare <- compare.EGA.plots(rm_x_UG_27_ega, rm_x_UG_27_boot,
-  labels = c("Empirical", "Bootstrap"))
+  labels = c("Empirical", "Bootstrap")
+)
 dev.off()
 
 pdf("02_output/rm_x_UG_items_removed_ega_stability.pdf", width = 10, height = 10)

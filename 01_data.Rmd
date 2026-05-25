@@ -11,28 +11,52 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r git, eval=FALSE}
 usethis::create_from_github("https://github.com/Sfglatt/Restriction-measure.git",
-                            destdir = "Github/Restriction-measure")
+  destdir = "Github/Restriction-measure"
+)
 ```
 
 ```{r packages}
-if (!require("dplyr")) {install.packages("dplyr"); require("dplyr")} 
-if (!require("haven")) {install.packages("haven"); require("haven")} 
-if (!require("psych")) {install.packages("psych"); require("psych")} 
-if (!require("tidyverse")) {install.packages("tidyverse"); require("tidyverse")} 
+if (!require("dplyr")) {
+  install.packages("dplyr")
+  require("dplyr")
+}
+if (!require("haven")) {
+  install.packages("haven")
+  require("haven")
+}
+if (!require("psych")) {
+  install.packages("psych")
+  require("psych")
+}
+if (!require("tidyverse")) {
+  install.packages("tidyverse")
+  require("tidyverse")
+}
+
+# Folder for output
+if (!dir.exists("01_output")) {
+  dir.create("01_output")
+}
 ```
 
 ```{r data}
-# Import data 
+# Import data
 
 # CSVs
 CS_dat <- read.csv("Raw_data/ClinicalScreener Baseline.csv")
 Pioneer_dat <- read.csv("Raw_data/Pioneer Baseline.csv")
 R15_dat <- read.csv("Raw_data/R15 baseline.csv")
+R15_2 <- read_sav("Raw_data/R15_FULL_CLEAN_SCORED_NIMP_V2.sav")
+
 UG_dat <- read.csv("Raw_data/IMPUTED_Undergrad Screener_FRM data.csv")
 
 # SAVs
 ORP_dat <- read_sav("Raw_data/ORP_FULL_CLEAN.sav")
 PT_dat <- read_sav("Raw_data/PTvCBT_FULL_CLEAN.sav")
+
+# Get data dictionaries for ORP/PT/R15
+ORP_dictionary <- labelled::generate_dictionary(ORP_dat)
+R15_dictionary <- labelled::generate_dictionary(R15_2)
 ```
 
 
@@ -40,30 +64,168 @@ PT_dat <- read_sav("Raw_data/PTvCBT_FULL_CLEAN.sav")
 # Select columns rm_1 through rm_72 and add a dataset identifier for each dataset; no loop to make sure of the right version/time items
 
 # also select demographics
+
 # clinical_demo_1	  What sex were you assigned at birth?
+# In ORP, demo_sex
+ORP_dictionary %>%
+  dplyr::filter(variable == "demo_sex")
+# [1] Male    
+# [2] Female  
+# [3] Intersex
+
+# In R15, 
+R15_dictionary %>%
+  dplyr::filter(variable == "t1_demo_1") # Matches ORP demo
+
 # clinical_demo_2		Which gender do you most identify as?
+# In ORP, demo_gender
+ORP_dictionary %>%
+  dplyr::filter(variable == "demo_gender")
+# [1] Female                       
+# [2] Male                         
+# [3] Transgender Female           
+# [4] Transgender Male             
+# [5] Gender Variant/Non-Conforming
+# [6] Not listed
+
+# In R15, 
+R15_dictionary %>%
+  dplyr::filter(variable == "t1_demo_2") # Matches ORP demo
+
 # clinical_demo_3	 	What is your sexual orientation?
+# In ORP, demo_sexualorientation
+ORP_dictionary %>%
+  dplyr::filter(variable == "demo_sexualorientation")
+# [1] Lesbian or gay               
+# [2] Straight (Not lesbian or gay)
+# [3] Bisexual                     
+# [4] Something else               
+# [5] Dont know                    
+# [6] Prefer not to disclose  
+
+# In R15, 
+R15_dictionary %>%
+  dplyr::filter(variable == "t1_demo_3") # Matches ORP demo
+
 # clinical_demo_4		What is your marital status?
+# In ORP, demo_marital
+ORP_dictionary %>%
+  dplyr::filter(variable == "demo_marital")
+# [1] Single, never married
+# [2] Married, or remarried
+# [3] Divorced             
+# [4] Separated            
+# [5] Widowed  
+
+# In R15, 
+R15_dictionary %>%
+  dplyr::filter(variable == "t1_demo_4") # Matches ORP demo
+
 # clinical_demo_8   Your age:
+# In ORP, age
 
+# For ethnicity: 
+# PT/ORP = "race" 
+ORP_dictionary %>%
+  dplyr::filter(variable == "race")
+# [0] American Indian or Alaskan Native           
+# [1] Asian or Pacific Islander (includes Asian A~
+# [2] Black, not of Hispanic origin (includes Afr~
+# [3] Hispanic                                    
+# [4] Multiracial, Biracial, Multiple Broad Categ~
+# [5] White, not of Hispanic origin (includes Cau~
+# [6] Not listed 
 
+# R15 = "demo_24"   demographics	"For the following please select the most appropriate broad answer on the left and the most specific detailed answer on the right if you identify as Asian or Pacific Islander. We have included more specific choices for that answer because we are aware that this category is particularly broad. The specific choices are based on the ones most frequently noted by students at this university.
+
+R15_dictionary %>%
+  dplyr::filter(variable == "t1_demo_24") # Matches ORP demo
+
+# CS = "clinical_demo_21"	radio	"Ethnicity (please indicate how you identify yourself):
+# PIONEER = t1clinical_demo_22 clinical_demographics	"For the following  please select the most appropriate broad answer first  and then the most specific detailed answer if you identify as Asian or Pacific Islander. We have included more specific choices for that answer because we are aware that this category is particularly broad. The specific choices are based on the ones most frequently noted by students at this university.
+# UG = "clinical_demo_22_v2"
+
+# For diagnosis
+# ORP/PT: currentdx2
+ORP_dictionary %>%
+  dplyr::filter(variable == "currentdx2")
+# [1] 1 ANBP - Anorexia Nerv~
+# [2] 2 ANR - Anorexia Nervo~
+# [3] 3 BNP - Bulimia Nervos~
+# [4] 4 BNNP = Bulimia Nervo~
+# [5] 5 BED - Binge Eating D~
+# [6] 6 AANBP(OSFED) - Atypi~
+# [7] 7 AANR(OSFED) - Atypic~
+# [8] 8 ABNP(OSFED) - Atypic~
+# [9] 9  ABNNP(OSFED) - Atyp~
+# [10] 10 ABED(OSFED) - Atyp~
+
+# CS: clinical_demo_13
+
+# For R15, there are 9 standalone columns
 CS_selected <- CS_dat %>%
-  select(matches("^rm_([1-9]|[1-6][0-9]|7[0-2])$"), 
-         clinical_demo_1, clinical_demo_2, clinical_demo_3, clinical_demo_4, clinical_demo_8) %>%
+  select(
+    matches("^rm_([1-9]|[1-6][0-9]|7[0-2])$"),
+    clinical_demo_1, clinical_demo_2, clinical_demo_3, clinical_demo_4, clinical_demo_8, clinical_demo_21, clinical_demo_13
+  ) %>%
   mutate(dataset_id = "CS_dat")
 
+CS_selected <- CS_selected %>%
+  rename(
+    clinical_demo_dx = clinical_demo_13 
+  )
+
 Pioneer_selected <- Pioneer_dat %>%
-  select(matches("^t1rm_([1-9]|[1-6][0-9]|7[0-2])$"), 
-         t1clinical_demo_1, t1clinical_demo_2, t1clinical_demo_3, t1clinical_demo_4, t1clinical_demo_8) %>%
+  select(
+    matches("^t1rm_([1-9]|[1-6][0-9]|7[0-2])$"),
+    t1clinical_demo_1, t1clinical_demo_2, t1clinical_demo_3, t1clinical_demo_4, t1clinical_demo_8, t1clinical_demo_22
+  ) %>%
   mutate(dataset_id = "Pioneer_dat")
 
 colnames(Pioneer_selected) <- gsub("t1", "", colnames(Pioneer_selected))
-colnames(Pioneer_selected)
 
+Pioneer_selected <- Pioneer_selected %>%
+  rename(
+    clinical_demo_21 = clinical_demo_22 # To be consistent with the other datasets
+  )
+```
+
+
+```{r clean R15 data}
+# Deal with diagnosis columns first
+labels <- c(
+  "AN",
+  "BN",
+  "BED",
+  "Atypical AN",
+  "Atypical BN",
+  "ARFID",
+  "OSFED",
+  "EDNOS",
+  "Other"
+)
+
+cols <- paste0("demo_15___", 0:8)
+
+R15_dat$demo_15_combined <- apply(R15_dat[, cols], 1, function(x) {
+  paste(labels[which(x == 1)], collapse = "; ")
+})
+
+table(R15_dat$demo_15_combined)
+
+cols <- paste0("demo_15___", 0:8)
+
+R15_dat$multi_check <- rowSums(R15_dat[, cols] == 1, na.rm = TRUE)
+
+# rows with more than one endorsement
+df_multi <- R15_dat[R15_dat$multi_check > 1, ]
+df_multi
 
 R15_selected <- R15_dat %>%
-  select(matches("^rm_([1-9]|[1-6][0-9]|7[0-2])$"), 
-         demo_1, demo_2, demo_3, demo_4, demo_8) %>% #  checked REDCap to make sure they are the same questions as "clinical" items 
+  select(
+    matches("^rm_([1-9]|[1-6][0-9]|7[0-2])$"),
+    demo_1, demo_2, demo_3, demo_4, demo_8, demo_24
+  ) %>% #  checked REDCap to make sure they are the same questions as "clinical" items
   mutate(dataset_id = "R15_dat")
 
 # colnames(R15_selected)
@@ -71,35 +233,85 @@ R15_selected <- R15_selected %>%
   rename_with(~ gsub("^demo", "clinical_demo", .), starts_with("demo"))
 
 
+R15_selected <- R15_selected %>%
+  rename(
+    clinical_demo_21 = clinical_demo_24 # To be consistent with the other datasets
+  )
+```
+
+
+```{r clean ORP data}
 ORP_selected <- ORP_dat %>%
-  select(matches("^rm_([1-9]|[1-6][0-9]|7[0-2])$"), age, gender) %>%
+  select(matches("^rm_([1-9]|[1-6][0-9]|7[0-2])$"), demo_sex, gender, demo_sexualorientation, demo_marital, age, race, currentdx2) %>%
   mutate(dataset_id = "ORP_dat")
 
 colnames(ORP_selected)
-# clinical_demo_2 = gender
-# clinical_demo_8 = age
+table(ORP_dat$gender)
+table(ORP_dat$demo_gender) # why are they not identical 
+
+ORP_dat <- ORP_dat %>%
+  mutate(age = as.numeric(age))
+
+ORP_dat <- ORP_dat %>%
+  mutate(demo_age = as.numeric(demo_age))
+
+summary(ORP_dat$age)
+summary(ORP_dat$demo_age) # why are they not identical?
 
 ORP_selected <- ORP_selected %>%
-  rename(clinical_demo_8 = age, 
-         clinical_demo_2 = gender)
-
+  rename(
+    clinical_demo_1 = demo_sex,
+    clinical_demo_2 = gender,
+    clinical_demo_3 = demo_sexualorientation,
+    clinical_demo_4 = demo_marital,
+    clinical_demo_8 = age,
+    clinical_demo_21 = race, 
+    clinical_demo_dx = currentdx2
+  )
 
 PT_selected <- PT_dat %>%
-  select(matches("^rm_([1-9]|[1-6][0-9]|7[0-2])$"), age, gender) %>%
+  select(matches("^rm_([1-9]|[1-6][0-9]|7[0-2])$"), demo_1, gender, demo_3, demo_4, age, race, currentdx2) %>%
   mutate(dataset_id = "PT_dat")
 
+table(PT_dat$gender)
+table(PT_dat$demo_2) # why are they not identical
+
+PT_dat <- PT_dat %>%
+  mutate(age = as.numeric(age))
+
+PT_dat <- PT_dat %>%
+  mutate(demo_8 = as.numeric(demo_8))
+
+summary(PT_dat$age)
+summary(PT_dat$demo_8) # why are they not identical?
+
 PT_selected <- PT_selected %>%
-  rename(clinical_demo_8 = age, 
-         clinical_demo_2 = gender)
+  rename(
+    clinical_demo_1 = demo_1,
+    clinical_demo_2 = gender,
+    clinical_demo_3 = demo_3,
+    clinical_demo_4 = demo_4,
+    clinical_demo_8 = age,
+    clinical_demo_21 = race, 
+    clinical_demo_dx = currentdx2
+  )
 
 
 UG_selected <- UG_dat %>%
-  select(matches("^rm_([1-9]|[1-6][0-9]|7[0-2])$"), 
-         clinical_demo_1_v2, clinical_demo_2_v2, clinical_demo_3_v2, clinical_demo_4_v2, clinical_demo_8_v2) %>%
+  select(
+    matches("^rm_([1-9]|[1-6][0-9]|7[0-2])$"),
+    clinical_demo_1_v2, clinical_demo_2_v2, clinical_demo_3_v2, clinical_demo_4_v2, clinical_demo_8_v2, clinical_demo_22_v2
+  ) %>%
   mutate(dataset_id = "UG_dat")
 
 UG_selected <- UG_selected %>%
   rename_with(~ gsub("_v2$", "", .), starts_with("clinical_demo"))
+
+UG_selected <- UG_selected %>%
+  rename(
+    clinical_demo_21 = clinical_demo_22 # to be consistent with other datasets
+  )
+
 
 # deal with mismatch in age column across datasets
 CS_selected <- CS_selected %>%
@@ -140,33 +352,42 @@ missing_data <- merged_rm_cleaned %>%
 
 missing_data
 
-# remove item level missingness 
+# remove item level missingness
 merged_rm_cleaned_items <- merged_rm_cleaned %>%
   filter(
-    if_all(starts_with("rm_"), ~ !is.na(.)) 
- ) 
+    if_all(starts_with("rm_"), ~ !is.na(.))
+  )
 
 # remove UG screener (non-clinical population)
 merged_rm_cleaned_items_x_UG <- merged_rm_cleaned_items %>%
-  filter(dataset_id != 'UG_dat')
+  filter(dataset_id != "UG_dat")
 
 # brief demographics
-summary(merged_rm_cleaned_items_x_UG$clinical_demo_8)          # age, 5 missing
-sd(merged_rm_cleaned_items_x_UG$clinical_demo_8, na.rm = TRUE) 
-table(merged_rm_cleaned_items_x_UG$clinical_demo_2)            # gender, 8 missing
+summary(merged_rm_cleaned_items_x_UG$clinical_demo_8) # age, 5 missing
+sd(merged_rm_cleaned_items_x_UG$clinical_demo_8, na.rm = TRUE)
+table(merged_rm_cleaned_items_x_UG$clinical_demo_2) # gender, 8 missing
 # table(merged_rm_cleaned_items_x_UG$dataset_id)               # how many come from clinical datasets?
 ```
 
 ```{r save data}
 # save datasets
-write.csv(merged_rm_cleaned, file = paste0("01_output/RM_items_clean_UG_R15_PTvCBT_ORP_PIONEER_", 
-                                           format(Sys.Date(), "%Y_%m_%d"), ".csv"),  row.names = TRUE) # full dataset & rows with all NA removed
+write.csv(merged_rm_cleaned_items, file = paste0(
+  "01_output/RM_items_clean_UG_R15_PTvCBT_ORP_PIONEER_",
+  format(Sys.Date(), "%Y_%m_%d"), ".csv"
+), row.names = TRUE) # full dataset & rows with all NA removed
 
-write.csv(merged_rm, file = paste0("01_output/RM_items_UG_R15_PTvCBT_ORP_PIONEER_", 
-                                   format(Sys.Date(), "%Y_%m_%d"), ".csv"),  row.names = TRUE) # full dataset & rows with all NA not removed
+write.csv(merged_rm, file = paste0(
+  "01_output/RM_items_UG_R15_PTvCBT_ORP_PIONEER_",
+  format(Sys.Date(), "%Y_%m_%d"), ".csv"
+), row.names = TRUE) # full dataset & rows with all NA not removed
 
-write.csv(merged_rm_cleaned_items_x_UG, file = paste0("01_output/RM_items_R15_PTvCBT_ORP_PIONEER_", 
-                                                      format(Sys.Date(), "%Y_%m_%d"), ".csv"),  row.names = TRUE) # without undergrad screener, and all missingness (including item-level) are removed
+write.csv(merged_rm_cleaned_items_x_UG, file = paste0(
+  "01_output/RM_items_R15_PTvCBT_ORP_PIONEER_",
+  format(Sys.Date(), "%Y_%m_%d"), ".csv"
+), row.names = TRUE) # without undergrad screener, and all missingness (including item-level) are removed
+# 2025-03-15: initial analysis datasets
+# 2026-05-13: updated with demos
+# 2026-05-17: updated with race demos (different per dataset)
 ```
 
 
