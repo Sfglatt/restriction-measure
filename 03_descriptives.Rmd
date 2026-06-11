@@ -45,13 +45,6 @@ demo_data <- merged_rm_cleaned_items_x_UG %>%
 
 # Basic demographics for the combined sample and each sample separately
 ```{r demos}
-# clinical_demo_1	  What sex were you assigned at birth?
-# clinical_demo_2		Which gender do you most identify as?
-# clinical_demo_3	 	What is your sexual orientation?
-# clinical_demo_4		What is your marital status?
-# clinical_demo_8   Your age:
-# clinical_demo_21  Ethnicity 
-
 # Make labeled/factor versions of the demographic variables for table
 # These labels are based on ORP and R15 SPSS data dictionaries (which concord with one another)
 demo_data <- demo_data %>%
@@ -115,7 +108,7 @@ demo_data <- demo_data %>%
     )
   )
 
-# One demographics table
+# Make one demographics table for the combined sample & each dataset
 demo_table <- demo_data %>%
   select(
     dataset_id,
@@ -137,8 +130,10 @@ demo_table <- demo_data %>%
   bold_labels()
 
 demo_table
+```
 
-# Save
+# Save Demographics table
+```{r save}
 gtsummary::as_gt(demo_table) %>%
   gt::gtsave(
     paste0("03_output/demo_table_", Sys.Date(), ".html")

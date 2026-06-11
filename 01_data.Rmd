@@ -39,20 +39,18 @@ if (!dir.exists("01_output")) {
 }
 ```
 
-```{r data}
 # Import data
-
+```{r data}
 # CSVs
 CS_dat <- read.csv("Raw_data/ClinicalScreener Baseline.csv")
 Pioneer_dat <- read.csv("Raw_data/Pioneer Baseline.csv")
 R15_dat <- read.csv("Raw_data/R15 baseline.csv")
-R15_2 <- read_sav("Raw_data/R15_FULL_CLEAN_SCORED_NIMP_V2.sav")
-
 UG_dat <- read.csv("Raw_data/IMPUTED_Undergrad Screener_FRM data.csv")
 
 # SAVs
 ORP_dat <- read_sav("Raw_data/ORP_FULL_CLEAN.sav")
 PT_dat <- read_sav("Raw_data/PTvCBT_FULL_CLEAN.sav")
+R15_2 <- read_sav("Raw_data/R15_FULL_CLEAN_SCORED_NIMP_V2.sav")
 
 # Get data dictionaries for ORP/PT/R15
 ORP_dictionary <- labelled::generate_dictionary(ORP_dat)
@@ -163,6 +161,10 @@ ORP_dictionary %>%
 # CS: clinical_demo_13
 
 # For R15, there are 9 standalone columns
+```
+
+# Clean CS data
+```{r clean CS data}
 CS_selected <- CS_dat %>%
   select(
     matches("^rm_([1-9]|[1-6][0-9]|7[0-2])$"),
@@ -175,6 +177,12 @@ CS_selected <- CS_selected %>%
     clinical_demo_dx = clinical_demo_13 
   )
 
+CS_selected <- CS_selected %>%
+  mutate(clinical_demo_8 = as.numeric(clinical_demo_8))
+```
+
+# Clean Pioneer data
+```{r clean Pioneer data}
 Pioneer_selected <- Pioneer_dat %>%
   select(
     matches("^t1rm_([1-9]|[1-6][0-9]|7[0-2])$"),
@@ -188,9 +196,12 @@ Pioneer_selected <- Pioneer_selected %>%
   rename(
     clinical_demo_21 = clinical_demo_22 # To be consistent with the other datasets
   )
+
+Pioneer_selected <- Pioneer_selected %>%
+  mutate(clinical_demo_8 = as.numeric(clinical_demo_8))
 ```
 
-
+# Clean R15 data
 ```{r clean R15 data}
 # Deal with diagnosis columns first
 labels <- c(
@@ -237,9 +248,12 @@ R15_selected <- R15_selected %>%
   rename(
     clinical_demo_21 = clinical_demo_24 # To be consistent with the other datasets
   )
+
+R15_selected <- R15_selected %>%
+  mutate(clinical_demo_8 = as.numeric(clinical_demo_8))
 ```
 
-
+# Clean ORP data
 ```{r clean ORP data}
 ORP_selected <- ORP_dat %>%
   select(matches("^rm_([1-9]|[1-6][0-9]|7[0-2])$"), demo_sex, gender, demo_sexualorientation, demo_marital, age, race, currentdx2) %>%
@@ -269,6 +283,12 @@ ORP_selected <- ORP_selected %>%
     clinical_demo_dx = currentdx2
   )
 
+ORP_selected <- ORP_selected %>%
+  mutate(clinical_demo_8 = as.numeric(clinical_demo_8))s
+```
+
+# Clean PT data
+```{r clean PT data}
 PT_selected <- PT_dat %>%
   select(matches("^rm_([1-9]|[1-6][0-9]|7[0-2])$"), demo_1, gender, demo_3, demo_4, age, race, currentdx2) %>%
   mutate(dataset_id = "PT_dat")
@@ -296,7 +316,12 @@ PT_selected <- PT_selected %>%
     clinical_demo_dx = currentdx2
   )
 
+PT_selected <- PT_selected %>%
+  mutate(clinical_demo_8 = as.numeric(clinical_demo_8))
+```
 
+# Clean UG data
+```{r clean UG data}
 UG_selected <- UG_dat %>%
   select(
     matches("^rm_([1-9]|[1-6][0-9]|7[0-2])$"),
@@ -312,31 +337,18 @@ UG_selected <- UG_selected %>%
     clinical_demo_21 = clinical_demo_22 # to be consistent with other datasets
   )
 
-
-# deal with mismatch in age column across datasets
-CS_selected <- CS_selected %>%
-  mutate(clinical_demo_8 = as.numeric(clinical_demo_8))
-
-Pioneer_selected <- Pioneer_selected %>%
-  mutate(clinical_demo_8 = as.numeric(clinical_demo_8))
-
-R15_selected <- R15_selected %>%
-  mutate(clinical_demo_8 = as.numeric(clinical_demo_8))
-
-ORP_selected <- ORP_selected %>%
-  mutate(clinical_demo_8 = as.numeric(clinical_demo_8))
-
-PT_selected <- PT_selected %>%
-  mutate(clinical_demo_8 = as.numeric(clinical_demo_8))
-
 UG_selected <- UG_selected %>%
   mutate(clinical_demo_8 = as.numeric(clinical_demo_8))
+```
 
+# Merge datasets
+```{r merge data}
 # Combine all datasets into one
 merged_rm <- bind_rows(CS_selected, Pioneer_selected, R15_selected, ORP_selected, PT_selected, UG_selected)
 View(merged_rm)
 ```
 
+# Item-level stats and missingness
 ```{r descriptives}
 # mean, SD, ranges for all items
 describe(merged_rm %>% select(starts_with("rm_")))
@@ -361,14 +373,9 @@ merged_rm_cleaned_items <- merged_rm_cleaned %>%
 # remove UG screener (non-clinical population)
 merged_rm_cleaned_items_x_UG <- merged_rm_cleaned_items %>%
   filter(dataset_id != "UG_dat")
-
-# brief demographics
-summary(merged_rm_cleaned_items_x_UG$clinical_demo_8) # age, 5 missing
-sd(merged_rm_cleaned_items_x_UG$clinical_demo_8, na.rm = TRUE)
-table(merged_rm_cleaned_items_x_UG$clinical_demo_2) # gender, 8 missing
-# table(merged_rm_cleaned_items_x_UG$dataset_id)               # how many come from clinical datasets?
 ```
 
+# Save data
 ```{r save data}
 # save datasets
 write.csv(merged_rm_cleaned_items, file = paste0(

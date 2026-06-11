@@ -43,171 +43,24 @@ merged_rm_x_UG_ega_vars <- merged_rm_cleaned_items_x_UG %>%
   select(-dataset_id, -X, -starts_with("clinical_demo"))
 ```
 
-# initial EGA with with item removal per UVA
-```{r ega uva}
-# unique variable analysis to see redunancies
-rm_uva <- UVA(data = merged_rm_ega_vars)
-rm_uva
-
-rm_uva$keep_remove
-
-# EGA
-rm_uva_ega <- EGA(
-  data = rm_uva$reduced_data,
-  corr = "auto",
-  model = "glasso",
-  algorithm = "walktrap",
-  uni.method = "louvain",
-  plot.EGA = TRUE,
-  verbose = TRUE
-)
-
-summary(rm_uva_ega)
-plot(rm_uva_ega, layout = "circle")
-
-# network loadings
-net.loads(rm_uva_ega)
-
-# boostrap for stability
-rm_uva_boot <- bootEGA(
-  data = rm_uva$reduced_data,
-  corr = "auto",
-  model = "glasso",
-  algorithm = "walktrap",
-  uni.method = "louvain",
-  iter = 1000,
-  seed = 123456
-)
-
-# compare median structure between empirical and boot
-rm_uva_compare <- compare.EGA.plots(
-  rm_uva_ega, rm_uva_boot,
-  labels = c("Empirical", "Bootstrap")
-)
-
-# summary stas about bootstrapped version
-summary(rm_uva_boot)
-
-# item stability
-rm_uva_boot_dim <- dimensionStability(rm_uva_boot)
-
-# "Item stability indicates how often an item replicates in their designated EGA dimension, with values lower than .75 (i.e., that are estimated in their original dimensions in 75% of the bootstrapped samples)"
-
-# where are the items going in the times that it isn't going in its dimension
-rm_uva_boot_dim$item.stability$item.stability$all.dimensions
-
-# To improve fit/stability it's suggested to remove items with stability <75% and/or with network loadings lower than .15.
-```
-
-# Save figures
-```{r ega figures, eval=FALSE}
-# save figures
-pdf("02_output/rm_uva_ega_plot.pdf", width = 10, height = 10)
-plot(rm_uva_ega)
-dev.off()
-
-pdf("02_output/rm_uva_ega_plot_circle.pdf", width = 13, height = 10)
-plot(rm_uva_ega, layout = "circle")
-dev.off()
-
-pdf("02_output/rm_uva_ega_comparison_plot.pdf", width = 10, height = 10)
-rm_uva_compare <- compare.EGA.plots(rm_uva_ega, rm_uva_boot,
-  labels = c("Empirical", "Bootstrap")
-)
-dev.off()
-
-pdf("02_output/rm_uva_ega_stability.pdf", width = 10, height = 10)
-dimensionStability(rm_uva_boot)
-dev.off()
-```
-
-# remove lowest items after UGA
-```{r ega w item removals}
-merged_rm_27_ega_vars <- merged_rm_cleaned_items %>%
-  select(
-    -rm_1, -rm_17, -rm_22, -rm_34, -rm_45, -rm_70, # per UVA
-    -rm_20, -rm_21, -rm_23, -rm_33, -rm_49, -rm_27, -rm_9, -rm_11, -rm_37, # poor function
-    -starts_with("clinical_demo"), -dataset_id
-  )
-
-# EGA
-rm_27_ega <- EGA(
-  data = merged_rm_27_ega_vars,
-  corr = "auto",
-  model = "glasso",
-  algorithm = "walktrap",
-  uni.method = "louvain",
-  plot.EGA = TRUE,
-  verbose = TRUE
-)
-
-summary(rm_27_ega)
-plot(rm_27_ega, layout = "circle")
-
-# network loadings
-net.loads(rm_27_ega)
-
-# boostrap for stability
-rm_27_boot <- bootEGA(
-  data = merged_rm_27_ega_vars,
-  corr = "auto",
-  model = "glasso",
-  algorithm = "walktrap",
-  uni.method = "louvain",
-  iter = 1000,
-  seed = 123456
-)
-
-# compare median structure between empirical and boot
-rm_27_compare <- compare.EGA.plots(
-  rm_27_ega, rm_27_boot,
-  labels = c("Empirical", "Bootstrap")
-)
-
-# summary stats about bootstrapped version
-summary(rm_27_boot)
-
-# item stability
-rm_27_boot_dim <- dimensionStability(rm_27_boot)
-
-# where are the items going in the times that it isn't going in its dimension
-rm_27_boot_dim$item.stability$item.stability$all.dimension
-```
-
-```{r ega w item removals figures, eval=FALSE}
-pdf("02_output/rm_items_removed_ega_plot.pdf", width = 10, height = 10)
-plot(rm_27_ega)
-dev.off()
-
-pdf("02_output/rm_items_removed_ega_plot_circle.pdf", width = 13, height = 10)
-plot(rm_27_ega, layout = "circle")
-dev.off()
-
-pdf("02_output/rm_items_removed_ega_comparison_plot.pdf", width = 10, height = 10)
-rm_27_compare <- compare.EGA.plots(rm_27_ega, rm_27_boot,
-  labels = c("Empirical", "Bootstrap")
-)
-dev.off()
-
-pdf("02_output/rm_items_removed_ega_stability.pdf", width = 10, height = 10)
-dimensionStability(rm_27_boot)
-dev.off()
-```
-
-# removing UG screener, do UVA + EGA
-```{r ega wo ug}
+# Unique variable analysis
+```{r ega 1 items}
 # merged_rm_cleaned_items_x_UG <- merged_rm_cleaned_items %>%
 #  filter(dataset_id != "UG_dat")
 
 # Rename variables to remove rm_
 colnames(merged_rm_x_UG_ega_vars) <- gsub("^rm_", "", colnames(merged_rm_x_UG_ega_vars))
 
-# unique variable analysis to see redunancies
+# Unique variable analysis to see overlap
 rm_x_UG_uva <- UVA(data = merged_rm_x_UG_ega_vars)
 rm_x_UG_uva
 
+# Look at items to keep & remove
 rm_x_UG_uva$keep_remove
+```
 
+# EGA round 1
+```{r ega 1}
 # EGA
 rm_x_UG_uva_ega <- EGA(
   data = rm_x_UG_uva$reduced_data,
@@ -222,10 +75,10 @@ rm_x_UG_uva_ega <- EGA(
 summary(rm_x_UG_uva_ega)
 plot(rm_x_UG_uva_ega, layout = "circle")
 
-# network loadings
+# Network loadings
 net.loads(rm_x_UG_uva_ega)
 
-# boostrap for stability
+# Boostrap for stability
 rm_x_UG_uva_boot <- bootEGA(
   data = rm_x_UG_uva$reduced_data,
   corr = "auto",
@@ -238,24 +91,25 @@ rm_x_UG_uva_boot <- bootEGA(
 
 rm_x_UG_uva_boot
 
-# compare median structure between empirical and boot
+# Compare median structure between empirical and boot
 rm_x_UG_uva_compare <- compare.EGA.plots(
   rm_x_UG_uva_ega, rm_x_UG_uva_boot,
   labels = c("Empirical", "Bootstrap")
 )
 
-# summary stas about bootstrapped version
+# Summary stats about bootstrapped version
 summary(rm_x_UG_uva_boot)
 
-# item stability
+# Item stability
 rm_x_UG_uva_boot_dim <- dimensionStability(rm_x_UG_uva_boot)
 rm_x_UG_uva_boot_dim
-# where are the items going in the times that it isn't going in its dimension
+
+# Where are the items going in the times that it isn't going in its dimension
 rm_x_UG_uva_boot_dim$item.stability$item.stability$all.dimensions
 ```
 
-
-```{r ega wo ug figures, eval=FALSE}
+# EGA round 1 figures
+```{r ega 1 figures, eval=FALSE}
 # save figures 
 pdf("02_output/rm_x_UG_uva_ega_plot.pdf", width = 10, height = 10)
 plot(rm_x_UG_uva_ega)
@@ -276,10 +130,12 @@ dimensionStability(rm_x_UG_uva_boot)
 dev.off()
 ```
 
-# remove lowest items after UVA [without UG screener]
-```{r ega w item removal wo UG}
-# colnames(merged_rm_cleaned_items_x_UG) <- gsub("^rm_", "", colnames(merged_rm_cleaned_items_x_UG))
+# Remove items based on EGA round 1
+```{r ega 2 items}
+# Remove the item prefix for easier plotting
+colnames(merged_rm_cleaned_items_x_UG) <- gsub("^rm_", "", colnames(merged_rm_cleaned_items_x_UG))
 
+# Remove UVA-identified items from above and those with poor function from initial EGA
 merged_rm_x_UG_27_ega_vars <- merged_rm_cleaned_items_x_UG %>%
   select(
     -`2`, -`3`, -`13`, -`21`, -`22`, -`34`, -`45`, -`70`, # per UVA
@@ -291,7 +147,10 @@ merged_rm_x_UG_27_ega_vars <- merged_rm_cleaned_items_x_UG %>%
     
     -starts_with("clinical_demo"), -dataset_id, -X
   )
+```
 
+# EGA round 2 
+```{r ega}
 # EGA
 rm_x_UG_27_ega <- EGA(
   data = merged_rm_x_UG_27_ega_vars,
@@ -306,10 +165,10 @@ rm_x_UG_27_ega <- EGA(
 summary(rm_x_UG_27_ega)
 plot(rm_x_UG_27_ega, layout = "circle")
 
-# network loadings
+# Network loadings
 net.loads(rm_x_UG_27_ega)
 
-# boostrap for stability
+# Boostrap for stability
 rm_x_UG_27_boot <- bootEGA(
   data = merged_rm_x_UG_27_ega_vars,
   corr = "auto",
@@ -321,24 +180,24 @@ rm_x_UG_27_boot <- bootEGA(
 )
 
 
-# compare median structure between empirical and boot
+# Compare median structure between empirical and boot
 rm_x_UG_27_compare <- compare.EGA.plots(
   rm_x_UG_27_ega, rm_x_UG_27_boot,
   labels = c("Empirical", "Bootstrap")
 )
 
-# summary stats about bootstrapped version
+# Summary stats about bootstrapped version
 summary(rm_x_UG_27_boot)
 
-# item stability
+# Item stability
 rm_x_UG_27_boot_dim <- dimensionStability(rm_x_UG_27_boot)
 rm_x_UG_27_boot_dim
 
-# where are the items going in the times that it isn't going in its dimension
+# Where are the items going in the times that it isn't going in its dimension
 rm_x_UG_27_boot_dim$item.stability$item.stability$all.dimension
 ```
 
-```{r ega w item removal wo UG figures}
+```{r ega 2 figures, eval=FALSE}
 pdf("02_output/rm_x_UG_items_removed_ega_plot.pdf", width = 10, height = 10)
 plot(rm_x_UG_27_ega)
 dev.off()
