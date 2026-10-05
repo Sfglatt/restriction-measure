@@ -43,13 +43,27 @@ merged_rm_x_UG_ega_vars <- merged_rm_cleaned_items_x_UG %>%
   select(-dataset_id, -X, -starts_with("clinical_demo"))
 ```
 
+# Dictionary
+Import data dictionary created in script 01
+```{r dictionary}
+ORP_dictionary <- read.csv("01_output/ORP_dictionary_2026_09_18.csv")
+
+ORP_dictionary_labels <- ORP_dictionary %>%
+  rename(
+    items = variable # To match the EGA output 
+  ) %>%
+  select(items, label)
+
+head(ORP_dictionary_labels)
+```
+
 # Unique variable analysis
 ```{r ega 1 items}
 # merged_rm_cleaned_items_x_UG <- merged_rm_cleaned_items %>%
 #  filter(dataset_id != "UG_dat")
 
 # Rename variables to remove rm_
-colnames(merged_rm_x_UG_ega_vars) <- gsub("^rm_", "", colnames(merged_rm_x_UG_ega_vars))
+# colnames(merged_rm_x_UG_ega_vars) <- gsub("^rm_", "", colnames(merged_rm_x_UG_ega_vars))
 
 # Unique variable analysis to see overlap
 rm_x_UG_uva <- UVA(data = merged_rm_x_UG_ega_vars)
@@ -108,49 +122,74 @@ rm_x_UG_uva_boot_dim
 rm_x_UG_uva_boot_dim$item.stability$item.stability$all.dimensions
 ```
 
+Make a csv with the items in each dimension with the item content
+```{r ega 1 labels}
+# Make dataframe with item + label + dimension
+item_dim <- rm_x_UG_uva_ega$dim.variables
+
+# Add description from data dictionary 
+item_dim_labels <- item_dim %>%
+  left_join(ORP_dictionary_labels, by = "items")
+
+View(item_dim_labels)
+
+# Save 
+write.csv(
+  item_dim_labels,
+  file = paste0(
+    "02_output/rm_x_UG_uva_dim_labels_",
+    format(Sys.Date(), "%Y_%m_%d"),
+    ".csv"
+  ),
+  row.names = TRUE
+)
+```
+
 # EGA round 1 figures
 ```{r ega 1 figures, eval=FALSE}
 # save figures 
-pdf("02_output/rm_x_UG_uva_ega_plot.pdf", width = 10, height = 10)
+pdf(paste0("02_output/rm_x_UG_uva_ega_plot_", format(Sys.Date(), "%Y_%m_%d"), ".pdf"), width = 10, height = 10)
 plot(rm_x_UG_uva_ega)
 dev.off()
 
-pdf("02_output/rm_x_UG_uva_ega_plot_circle.pdf", width = 13, height = 10)
+pdf(paste0("02_output/rm_x_UG_uva_ega_plot_circle_", format(Sys.Date(), "%Y_%m_%d"), ".pdf"), width = 13, height = 10)
 plot(rm_x_UG_uva_ega, layout = "circle")
 dev.off()
 
-pdf("02_output/rm_x_UG_uva_ega_comparison_plot.pdf", width = 10, height = 10)
+pdf(paste0("02_output/rm_x_UG_uva_ega_comparison_plot_", format(Sys.Date(), "%Y_%m_%d"), ".pdf"), width = 10, height = 10)
 rm_x_UG_uva_compare <- compare.EGA.plots(rm_x_UG_uva_ega, rm_x_UG_uva_boot,
   labels = c("Empirical", "Bootstrap")
 )
 dev.off()
 
-pdf("02_output/rm_x_UG_uva_ega_stability.pdf", width = 10, height = 10)
+pdf(paste0("02_output/rm_x_UG_uva_ega_stability_", format(Sys.Date(), "%Y_%m_%d"), ".pdf"), width = 10, height = 10)
 dimensionStability(rm_x_UG_uva_boot)
 dev.off()
+
 ```
 
 # Remove items based on EGA round 1
 ```{r ega 2 items}
 # Remove the item prefix for easier plotting
-colnames(merged_rm_cleaned_items_x_UG) <- gsub("^rm_", "", colnames(merged_rm_cleaned_items_x_UG))
+# colnames(merged_rm_cleaned_items_x_UG) <- gsub("^rm_", "", colnames(merged_rm_cleaned_items_x_UG))
 
 # Remove UVA-identified items from above and those with poor function from initial EGA
 merged_rm_x_UG_27_ega_vars <- merged_rm_cleaned_items_x_UG %>%
   select(
-    -`2`, -`3`, -`13`, -`21`, -`22`, -`34`, -`45`, -`70`, # per UVA
+    -`rm_2`, -`rm_3`, -`rm_13`, -`rm_21`, -`rm_22`, -`rm_34`, -`rm_45`, -`rm_70`, # per UVA
 
-    -`9`, -`11`, -`20`, -`23`, -`52`, -`19`,
-    -`35`, -`54`, -`37`, -`46`, -`53`, -`51`, -`66`, -`67`, -`36`, -`39`, -`72`,
-    -`12`, -`24`, -`25`, -`26`, -`44`, -`47`, -`30`, -`38`, -`43`, -`27`, -`48`, -`33`, -`41`, -`56`,
+    -`rm_9`, -`rm_11`, -`rm_20`, -`rm_23`, -`rm_52`, -`rm_19`,
+    -`rm_35`, -`rm_54`, -`rm_37`, -`rm_46`, -`rm_53`, -`rm_51`, -`rm_66`, -`rm_67`, -`rm_36`, -`rm_39`, -`rm_72`,
+    -`rm_12`, -`rm_24`, -`rm_25`, -`rm_26`, -`rm_44`, -`rm_47`, -`rm_30`, -`rm_38`, -`rm_43`, -`rm_27`, -`rm_48`, -`rm_33`, -`rm_41`, -`rm_56`,
     # poor function
     
     -starts_with("clinical_demo"), -dataset_id, -X
   )
+
 ```
 
 # EGA round 2 
-```{r ega}
+```{r ega 2}
 # EGA
 rm_x_UG_27_ega <- EGA(
   data = merged_rm_x_UG_27_ega_vars,
@@ -197,23 +236,172 @@ rm_x_UG_27_boot_dim
 rm_x_UG_27_boot_dim$item.stability$item.stability$all.dimension
 ```
 
+Make a csv with the items in each dimension with the item content
+```{r ega 2 labels}
+# Make dataframe with item + label + dimension
+item_dim_2 <- rm_x_UG_27_ega$dim.variables
+
+# Add description from data dictionary 
+item_dim_2_labels <- item_dim_2 %>%
+  left_join(ORP_dictionary_labels, by = "items")
+
+View(item_dim_2_labels)
+
+# Save 
+write.csv(
+  item_dim_2_labels,
+  file = paste0(
+    "02_output/rm_x_UG_items_removed_dim_labels_",
+    format(Sys.Date(), "%Y_%m_%d"),
+    ".csv"
+  ),
+  row.names = TRUE
+)
+```
+
+# EGA round 2 figures
 ```{r ega 2 figures, eval=FALSE}
-pdf("02_output/rm_x_UG_items_removed_ega_plot.pdf", width = 10, height = 10)
+pdf(paste0("02_output/rm_x_UG_items_removed_ega_plot_", format(Sys.Date(), "%Y_%m_%d"), ".pdf"), width = 10, height = 10)
 plot(rm_x_UG_27_ega)
 dev.off()
 
-pdf("02_output/rm_x_UG_items_removed_ega_plot_circle.pdf", width = 13, height = 10)
+pdf(paste0("02_output/rm_x_UG_items_removed_ega_plot_circle_", format(Sys.Date(), "%Y_%m_%d"), ".pdf"), width = 13, height = 10)
 plot(rm_x_UG_27_ega, layout = "circle")
 dev.off()
 
-pdf("02_output/rm_x_UG_items_removed_ega_comparison_plot.pdf", width = 10, height = 10)
+pdf(paste0("02_output/rm_x_UG_items_removed_ega_comparison_plot_", format(Sys.Date(), "%Y_%m_%d"), ".pdf"), width = 10, height = 10)
 rm_x_UG_27_compare <- compare.EGA.plots(rm_x_UG_27_ega, rm_x_UG_27_boot,
   labels = c("Empirical", "Bootstrap")
 )
 dev.off()
 
-pdf("02_output/rm_x_UG_items_removed_ega_stability.pdf", width = 10, height = 10)
+pdf(paste0("02_output/rm_x_UG_items_removed_ega_stability_", format(Sys.Date(), "%Y_%m_%d"), ".pdf"), width = 10, height = 10)
 dimensionStability(rm_x_UG_27_boot)
+dev.off()
+```
+
+# (09/25) EGA round 3
+Retaining some of the drinking/social items despite low performance because of theoretical/content importance and seeing what happens
+
+```{r ega 3 items}
+# Remove UVA-identified items from above and those with poor function from initial EGA; 
+# BUT, 
+# the ones that are commented and not crossed out are from social/drinking items that we theoretically want to keep in; 
+# Social items include 20, 47, 56, 66, 67, 72, and drinking items include 36, 37, 38. 
+
+merged_rm_x_UG_27_ega_vars_r3 <- merged_rm_cleaned_items_x_UG %>%
+  select(
+    -`rm_2`, -`rm_3`, -`rm_13`, -`rm_21`, -`rm_22`, -`rm_34`, -`rm_45`, -`rm_70`, # per UVA
+
+    -`rm_9`, -`rm_11`, # -`rm_20`, 
+    -`rm_23`, -`rm_52`, -`rm_19`,
+    -`rm_35`, -`rm_54`, 
+    # -`rm_37`, 
+    -`rm_46`, -`rm_53`, -`rm_51`, 
+    # -`rm_66`, -`rm_67`, -`rm_36`, 
+    -`rm_39`,
+    # -`rm_72`,
+    -`rm_12`, -`rm_24`, -`rm_25`, -`rm_26`, -`rm_44`,
+    # -`rm_47`, 
+    -`rm_30`, 
+    # -`rm_38`, 
+    -`rm_43`, -`rm_27`, -`rm_48`, -`rm_33`, -`rm_41`, 
+    # -`rm_56`,
+    # poor function
+    
+    -starts_with("clinical_demo"), -dataset_id, -X
+  )
+```
+
+# EGA round 3
+```{r ega 3}
+# EGA
+rm_x_UG_27_ega_r3 <- EGA(
+  data = merged_rm_x_UG_27_ega_vars_r3,
+  corr = "auto",
+  model = "glasso",
+  algorithm = "walktrap",
+  uni.method = "louvain",
+  plot.EGA = TRUE,
+  verbose = TRUE
+)
+
+summary(rm_x_UG_27_ega_r3)
+plot(rm_x_UG_27_ega_r3, layout = "circle")
+
+# Network loadings
+net.loads(rm_x_UG_27_ega_r3)
+
+# Boostrap for stability
+rm_x_UG_27_boot_r3 <- bootEGA(
+  data = merged_rm_x_UG_27_ega_vars_r3,
+  corr = "auto",
+  model = "glasso",
+  algorithm = "walktrap",
+  uni.method = "louvain",
+  iter = 1000,
+  seed = 123456
+)
+
+
+# Compare median structure between empirical and boot
+rm_x_UG_27_compare_r3 <- compare.EGA.plots(
+  rm_x_UG_27_ega_r3, rm_x_UG_27_boot_r3,
+  labels = c("Empirical", "Bootstrap")
+)
+
+# Summary stats about bootstrapped version
+summary(rm_x_UG_27_boot_r3)
+
+# Item stability
+rm_x_UG_27_boot_r3_dim <- dimensionStability(rm_x_UG_27_boot_r3)
+rm_x_UG_27_boot_r3_dim
+
+# Where are the items going in the times that it isn't going in its dimension
+rm_x_UG_27_boot_r3_dim$item.stability$item.stability$all.dimension
+```
+
+Make a csv with the items in each dimension with the item content
+```{r ega 2 labels}
+# Make dataframe with item + label + dimension
+item_dim_3 <- rm_x_UG_27_ega_r3$dim.variables
+
+# Add description from data dictionary 
+item_dim_3_labels <- item_dim_3 %>%
+  left_join(ORP_dictionary_labels, by = "items")
+
+View(item_dim_3_labels)
+
+# Save 
+write.csv(
+  item_dim_3_labels,
+  file = paste0(
+    "02_output/rm_x_UG_r3_items_removed_dim_labels_",
+    format(Sys.Date(), "%Y_%m_%d"),
+    ".csv"
+  ),
+  row.names = TRUE
+)
+```
+
+# EGA round 3 figures
+```{r ega 3 figures, eval=FALSE}
+pdf(paste0("02_output/rm_x_UG_r3_items_removed_ega_plot_", format(Sys.Date(), "%Y_%m_%d"), ".pdf"), width = 10, height = 10)
+plot(rm_x_UG_27_ega_r3)
+dev.off()
+
+pdf(paste0("02_output/rm_x_UG_r3_items_removed_ega_plot_circle_", format(Sys.Date(), "%Y_%m_%d"), ".pdf"), width = 13, height = 10)
+plot(rm_x_UG_27_ega_r3, layout = "circle")
+dev.off()
+
+pdf(paste0("02_output/rm_x_UG_r3_items_removed_ega_comparison_plot_", format(Sys.Date(), "%Y_%m_%d"), ".pdf"), width = 10, height = 10)
+rm_x_UG_27_compare_r3 <- compare.EGA.plots(rm_x_UG_27_ega_r3, rm_x_UG_27_boot_r3,
+  labels = c("Empirical", "Bootstrap")
+)
+dev.off()
+
+pdf(paste0("02_output/rm_x_UG__r3_items_removed_ega_stability_", format(Sys.Date(), "%Y_%m_%d"), ".pdf"), width = 10, height = 10)
+dimensionStability(rm_x_UG_27_boot_r3)
 dev.off()
 ```
 

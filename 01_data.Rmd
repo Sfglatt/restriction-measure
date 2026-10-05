@@ -55,6 +55,37 @@ R15_2 <- read_sav("Raw_data/R15_FULL_CLEAN_SCORED_NIMP_V2.sav")
 # Get data dictionaries for ORP/PT/R15
 ORP_dictionary <- labelled::generate_dictionary(ORP_dat)
 R15_dictionary <- labelled::generate_dictionary(R15_2)
+
+# Save one of the data dictionaries to later merge labels in with results
+view(ORP_dictionary)
+ORP_dictionary_df <- as.data.frame(ORP_dictionary)
+
+# Deal with wonly formatting
+ORP_dictionary_df[] <- lapply(
+  ORP_dictionary_df,
+  function(x) {
+    if (is.list(x)) {
+      sapply(x, paste, collapse = "; ")
+    } else {
+      x
+    }
+  }
+)
+
+view(ORP_dictionary_df)
+head(ORP_dictionary_df)
+
+write.csv(
+  ORP_dictionary_df,
+  file = paste0(
+    "01_output/ORP_dictionary_",
+    format(Sys.Date(), "%Y_%m_%d"),
+    ".csv"
+  ),
+  row.names = TRUE
+)
+
+# 09-18-2026 - initial version
 ```
 
 
